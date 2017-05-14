@@ -43,7 +43,13 @@ Finally, setting The `--dry` flag won't generate anything, but will print the
 training model. (Which tends to be pretty big, so redirecting your output to
 a file might be a good idea).
 
-## Does-it work ?
+## Does it work ?
 
 Well currently, not really, no. There are tons of issues to fix. But the result
-might be funny nonetheless.
+might be funny nonetheless. My todo list includes:
+
+- Reading something serious about Markov algorithm rather than doing this by intuition;
+
+- Improving the normalization of source files, which right now, is kind of a disgrace;
+
+- Finding a way to end sentences in a less abrupt fashion.
