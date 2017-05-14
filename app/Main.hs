@@ -10,6 +10,7 @@ import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import Data.Map (toList)
 import Options.Applicative
+import Options.Applicative.Types
 
 import Lordonator.Model
 import Lordonator.Generator
@@ -25,8 +26,12 @@ data Command = Generate { source :: Maybe FilePath,
                           depth :: Int,
                           dry :: Bool }
 
+sourceParser :: ReadM (Maybe FilePath)
+sourceParser = Just <$> readerAsk
+
 argsParser :: Parser Command
-argsParser = Generate <$> option auto (long "source"
+argsParser = Generate <$> option sourceParser
+                                     (long "source"
                                     <> metavar "FILE"
                                     <> help "Source file to generate content"
                                     <> value Nothing)
@@ -68,7 +73,7 @@ generate senNum senLen m = do sents <- replicateM senNum . buildSentence senLen 
 printModel :: Word -> WordsProba -> IO ()
 printModel w wp = let dispProba (sub, pb) = T.concat [ T.intercalate " " sub
                                                      , " --- "
-                                                     , (T.pack . show $ pb) ]
+                                                     , T.pack . show $ pb ]
                   in TIO.putStrLn "--------------"
                      >> TIO.putStrLn (T.toUpper w)
                      >> mapM_ (TIO.putStrLn . dispProba) wp
