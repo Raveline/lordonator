@@ -14,6 +14,7 @@ module Lordonator.Model (
 
 import Prelude hiding (Word, words)
 import qualified Data.Text as T
+import Data.List (tails)
 import qualified Data.Set as S
 import qualified Data.Map.Strict as M
 import Control.Applicative((<|>))
@@ -32,18 +33,14 @@ data Model = Model { nextWordStat :: NextWordProba
                    , sentenceStarter :: WordProba
                    , depth :: Int }
 
--- | Ugly manually-recursive function that will
--- break a list into sublist of length n.
+-- | Break a list into sublists of length n.
 --
 -- Example:
 --
 -- >>> withDepth 4 ["He", "can't", "read", "my", "Poker", "face"]
 -- [["He","can't","read","my"],["can't","read","my","Poker"],["read","my","Poker","face"]]
 withDepth :: Int -> [a] -> [[a]]
-withDepth _ [] = []
-withDepth n (w:ws)
-  | length ws < (n-1) = []
-  | otherwise = (w:take (n - 1) ws):withDepth n ws
+withDepth n = takeWhile ((== n) . length) . fmap (take n) . tails
 
 -- | Train a model from an example.
 -- Entry point to this submodule.
