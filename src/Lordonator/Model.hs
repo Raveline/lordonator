@@ -25,12 +25,12 @@ import Lordonator.Cleaner
 type WordProba = [(Word, Rational)]
 -- Markovish series of consecutive words
 type WordsProba = [([Word], Rational)]
-type ModelBuilder = M.Map Word [[Word]]
-type NextWordProba = M.Map Word WordsProba
+type ModelBuilder = M.Map [Word] [[Word]]
+type NextWordProba = M.Map [Word] WordsProba
 
 data Model = Model { nextWordStat :: NextWordProba
                    , sentenceEnder :: WordProba
-                   , sentenceStarter :: WordProba
+                   , sentenceStarter :: WordsProba
                    , depth :: Int }
 
 -- | Break a list into sublists of length n.
@@ -39,16 +39,17 @@ data Model = Model { nextWordStat :: NextWordProba
 --
 -- >>> withDepth 4 ["He", "can't", "read", "my", "Poker", "face"]
 -- [["He","can't","read","my"],["can't","read","my","Poker"],["read","my","Poker","face"]]
-withDepth :: Int -> [a] -> [[a]]
+withDepth :: Int -> [a] -> [[a]]
 withDepth n = takeWhile ((== n) . length) . fmap (take n) . tails
 
 -- | Train a model from an example.
 -- Entry point to this submodule.
 train :: Int -> T.Text -> Model
 train n t = let sentences = asSentences t
-                starters = stats $ map head sentences
+                starters = stats $ map (take 2) sentences
                 enders = stats $ map last sentences
                 sequences = map (withDepth n) sentences
+                builder :: ModelBuilder
                 builder = (foldl . foldl) putWord M.empty sequences
           in Model (M.map stats builder) enders starters 4
 
@@ -66,6 +67,6 @@ stats txts = let num = length txts
 -- of two consecutive words, add the 2nd one to the list of
 -- words that tend follow the first one.
 putWord :: ModelBuilder -> [Word] -> ModelBuilder
-putWord model (w:ws) = let insertion v = (ws :) <$> (v <|> Just [])
-                       in M.alter insertion w model
+putWord model (w:w':ws) = let insertion v = (ws :) <$> (v <|> Just [])
+                         in M.alter insertion [w, w'] model
 putWord m _ = m

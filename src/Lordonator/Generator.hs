@@ -13,20 +13,23 @@ import Pipes
 import Lordonator.Cleaner (Word)
 import Lordonator.Model
 
-nextWords :: (MonadRandom m) => Word -> Model -> m [Word]
+nextWords :: (MonadRandom m) => [Word] -> Model -> m [Word]
 nextWords w m = case M.lookup w (nextWordStat m) of
                   Nothing -> return []
                   Just xs -> fromList xs
 
-randomWord :: (MonadRandom m) => Word -> Model -> Producer Word m a
+randomWord :: (MonadRandom m) => [Word] -> Model -> Producer Word m a
 randomWord w m = do newWords <- lift $ nextWords w m
-                    let lastWord = last newWords
-                    yield $ T.intercalate " " newWords
-                    randomWord lastWord m
+                    if null newWords
+                      then yield "" >> randomWord [] m
+                      else do let last2Word = drop (length newWords - 2) newWords
+                              yield $ T.intercalate " " newWords
+                              randomWord last2Word m
 
-sentenceBuilder :: (MonadRandom m) => Word -> Int -> Consumer Word m Word
-sentenceBuilder w n = do words <- replicateM n await
-                         return . (`T.snoc` '.') . T.intercalate " " $ (w:words)
+sentenceBuilder :: (MonadRandom m) => [Word] -> Int -> Consumer Word m Word
+sentenceBuilder fw n = do words <- replicateM n await
+                          let w = T.intercalate " " fw
+                          return . (`T.snoc` '.') . T.intercalate " " $ (w:words)
 
 -- Since toTitleCase will transform "L'aventure" in "L'Aventure",
 -- we need our own method to capitalize only the first letter
@@ -37,5 +40,5 @@ singleCapitalize t = let initial = (T.toUpper . T.take 1) t
 
 buildSentence :: (MonadRandom m) => Int -> Model -> m T.Text
 buildSentence n m@(Model _ _ starts d) =
-  do firstWord <- fromList starts
-     runEffect $ randomWord firstWord m >-> sentenceBuilder (singleCapitalize firstWord) (n `div` d)
+  do firstWords <- fromList starts
+     runEffect $ randomWord firstWords m >-> sentenceBuilder firstWords (n `div` d)

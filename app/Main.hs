@@ -70,10 +70,10 @@ generate :: SentencesNum -> SentenceLength -> Model -> IO ()
 generate senNum senLen m = do sents <- replicateM senNum . buildSentence senLen $ m
                               mapM_ TIO.putStrLn sents
 
-printModel :: Word -> WordsProba -> IO ()
+printModel :: [Word] -> WordsProba -> IO ()
 printModel w wp = let dispProba (sub, pb) = T.concat [ T.intercalate " " sub
                                                      , " --- "
                                                      , T.pack . show $ pb ]
                   in TIO.putStrLn "--------------"
-                     >> TIO.putStrLn (T.toUpper w)
+                     >> TIO.putStrLn (T.toUpper . T.intercalate " " $ w)
                      >> mapM_ (TIO.putStrLn . dispProba) wp
