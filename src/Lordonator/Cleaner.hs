@@ -24,4 +24,4 @@ onASentenceBasis = let sentenceEnding c = c `elem` T.unpack "?!."
 -- | Normalize strings so they contain only admissible content.
 removeStuff :: T.Text -> T.Text
 removeStuff = let admissible c = isAlpha c || c `elem` T.unpack "'’-"
-              in T.toLower . T.strip . T.filter admissible
+              in T.strip . T.filter admissible
