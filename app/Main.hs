@@ -21,9 +21,9 @@ type SentencesNum = Int
 type Depth = Int
 
 data Command = Generate { source :: Maybe FilePath,
-                          size :: SentenceLength,
                           numSentences :: SentencesNum,
-                          depth :: Int,
+                          upstream :: Int,
+                          downstream :: Int,
                           dry :: Bool }
 
 sourceParser :: ReadM (Maybe FilePath)
@@ -35,21 +35,21 @@ argsParser = Generate <$> option sourceParser
                                     <> metavar "FILE"
                                     <> help "Source file to generate content"
                                     <> value Nothing)
-                      <*> option auto (long "length"
-                                    <> short 'l'
-                                    <> metavar "INT"
-                                    <> value 12
-                                    <> help "Ideal number of words per sentence to generate")
                       <*> option auto (long "sentences"
                                     <> short 's'
                                     <> metavar "INT"
                                     <> value 1
                                     <> help "Number of sentences to generate")
-                      <*> option auto (long "depth"
-                                    <> short 'e'
+                      <*> option auto (long "up"
+                                    <> short 'u'
                                     <> metavar "INT"
-                                    <> value 5
-                                    <> help "Depth of training (i.e., number of n-grams for training)")
+                                    <> value 2
+                                    <> help "How many upstream words we are using to train the model. E.g., n-grams used.")
+                      <*> option auto (long "down"
+                                     <> short 'o'
+                                     <> metavar "INT"
+                                     <> value 5
+                                     <> help "How many downstream words we are using following the upstream n-gram to train the model.")
                       <*> switch (long "dry"
                                 <> short 'd'
                                 <> help "Do not generate text but print the trained model")
@@ -59,16 +59,16 @@ main = let parser = info (argsParser <**> helper)
              (fullDesc
              <> progDesc "Generate random texts from a source"
              <> header "Lordonator - A Markovish random text generator")
-           go (Generate s _ _ d True) = getModel d s >>= mapM_ (uncurry printModel) . toList . nextWordStat
-           go (Generate s senLen senNum d _) = getModel d s >>= generate senNum senLen
+           go (Generate s _ u d True) = getModel u d s >>= mapM_ (uncurry printModel) . toList . nextWordStat
+           go (Generate s senNum u d _) = getModel u d s >>= generate senNum
        in go =<< execParser parser
 
-getModel :: Depth -> Maybe FilePath -> IO Model
-getModel n fp = train n <$> (maybe (getDataFileName "lordon.txt") pure fp >>= TIO.readFile)
+getModel :: Int -> Int -> Maybe FilePath -> IO Model
+getModel u d fp = train u d <$> (maybe (getDataFileName "lordon.txt") pure fp >>= TIO.readFile)
 
-generate :: SentencesNum -> SentenceLength -> Model -> IO ()
-generate senNum senLen m = do sents <- replicateM senNum . buildSentence senLen $ m
-                              mapM_ TIO.putStrLn sents
+generate :: SentencesNum -> Model -> IO ()
+generate senNum m = do sents <- replicateM senNum . buildSentence $ m
+                       mapM_ TIO.putStrLn sents
 
 printModel :: [Word] -> WordsProba -> IO ()
 printModel w wp = let dispProba (sub, pb) = T.concat [ T.intercalate " " sub

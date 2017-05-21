@@ -29,7 +29,6 @@ type ModelBuilder = M.Map [Word] [[Word]]
 type NextWordProba = M.Map [Word] WordsProba
 
 data Model = Model { nextWordStat :: NextWordProba
-                   , sentenceEnder :: WordProba
                    , sentenceStarter :: WordsProba
                    , depth :: Int }
 
@@ -44,14 +43,13 @@ withDepth n = takeWhile ((== n) . length) . fmap (take n) . tails
 
 -- | Train a model from an example.
 -- Entry point to this submodule.
-train :: Int -> T.Text -> Model
-train n t = let sentences = asSentences t
-                starters = stats $ map (take 2) sentences
-                enders = stats $ map last sentences
-                sequences = map (withDepth n) sentences
-                builder :: ModelBuilder
-                builder = (foldl . foldl) putWord M.empty sequences
-          in Model (M.map stats builder) enders starters 4
+train :: Int -> Int -> T.Text -> Model
+train u d t = let sentences = asSentences t
+                  starters = stats $ map (take u) sentences
+                  sequences = map (withDepth (u + d)) sentences
+                  builder :: ModelBuilder
+                  builder = (foldl . foldl) (putWord u) M.empty sequences
+              in Model (M.map stats builder) starters 4
 
 -- | Map a list of words to a list of probabilities
 -- of occurrences for each word, depending on the
@@ -66,7 +64,8 @@ stats txts = let num = length txts
 -- | Utility function to build up our model. Given a pair
 -- of two consecutive words, add the 2nd one to the list of
 -- words that tend follow the first one.
-putWord :: ModelBuilder -> [Word] -> ModelBuilder
-putWord model (w:w':ws) = let insertion v = (ws :) <$> (v <|> Just [])
-                         in M.alter insertion [w, w'] model
-putWord m _ = m
+putWord :: Int -> ModelBuilder -> [Word] -> ModelBuilder
+putWord u model ws = let key = take u ws
+                         val = drop u ws
+                         insertion v = (val :) <$> (v <|> Just [])
+                     in M.alter insertion key model
