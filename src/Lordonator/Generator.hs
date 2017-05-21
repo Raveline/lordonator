@@ -38,4 +38,4 @@ buildSentence :: (MonadRandom m, MonadIO m) => Model -> m Word
 buildSentence m@(Model _ starts d) =
   do fw <- fromList starts
      sentenceBits <- P.toListM (randomWord fw m >-> P.takeWhile (not . null))
-     return $  singleCapitalize . flip T.snoc '.' . T.intercalate " " . concat $ sentenceBits
+     return $  singleCapitalize . flip T.snoc '.' . T.intercalate " " . concat $ fw:sentenceBits
