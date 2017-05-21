@@ -7,6 +7,7 @@ module Lordonator.Generator (
 import Prelude hiding (Word, words, takeWhile)
 import qualified Data.Text as T
 import qualified Data.Map.Strict as M
+import Control.Monad (unless)
 import Control.Monad.Random
 import Pipes
 import qualified Pipes.Prelude as P
@@ -21,19 +22,10 @@ nextWords w m = case M.lookup w (nextWordStat m) of
 
 randomWord :: (MonadRandom m) => [Word] -> Model -> Producer [Word] m ()
 randomWord w m = do newWords <- lift $ nextWords w m
-                    if null newWords
-                      then yield [] >> randomWord [] m
-                      else do let last2Word = drop (length newWords - 2) newWords
-                              yield $ newWords
-                              randomWord last2Word m
-
-
-display :: (MonadIO m) => [Word] -> Consumer [Word] m Word
-display fw = do x <- await
-                if null x
-                  then return $ T.intercalate " " fw
-                  else display $ x ++ fw
-
+                    unless (null newWords) $
+                      do let last2Word = drop (length newWords - 2) newWords
+                         yield newWords
+                         randomWord last2Word m
 
 -- Since toTitleCase will transform "L'aventure" in "L'Aventure",
 -- we need our own method to capitalize only the first letter
