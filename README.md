@@ -29,15 +29,16 @@ options:
 The `--source` option lets you use another source file than the packaged one.
 Source file should be flat text.
 
-The `--length` option lets you define the number of words a sentence should
-contain.
-
 The `--sentences` option lets you require a given number of sentences. By
 default, only one randomish sentence will be generated.
 
-The `--depth` option allow you to tune the quality of the training. Training will
-retain n-grams depending on this option; the higher the number, the closer the
-text will look like the original.
+Model training can be set up through `--up` or `-u` for short and `--down` or
+`-o` for short. The logic is rather simple : we make a map from n-grams to
+a probability for every sequence of words known to follow the n-gram. The
+first number is the "n" of "n-gram"; the second the lenght of the sequence of
+words. Higher number will yield more coherent result, but have higher chances
+of being mere quotation of the source. Lower number yield potential hilarious
+results, but with frequent gibberish.
 
 Finally, setting The `--dry` flag won't generate anything, but will print the
 training model. (Which tends to be pretty big, so redirecting your output to
