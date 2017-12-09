@@ -30,7 +30,8 @@ type NextWordProba = M.Map [Word] WordsProba
 
 data Model = Model { nextWordStat :: NextWordProba
                    , sentenceStarter :: WordsProba
-                   , depth :: Int }
+                   , ngrams :: Int
+                   , sequences :: Int}
 
 -- | Break a list into sublists of length n.
 --
@@ -46,10 +47,9 @@ withDepth n = takeWhile ((== n) . length) . fmap (take n) . tails
 train :: Int -> Int -> T.Text -> Model
 train u d t = let sentences = asSentences t
                   starters = stats $ map (take u) sentences
-                  sequences = map (withDepth (u + d)) sentences
-                  builder :: ModelBuilder
-                  builder = (foldl . foldl) (putWord u) M.empty sequences
-              in Model (M.map stats builder) starters 4
+                  sequences = (withDepth (u + d)) (T.splitOn " " t)
+                  builder = foldl (putWord u) M.empty sequences
+              in Model (M.map stats builder) starters u d
 
 -- | Map a list of words to a list of probabilities
 -- of occurrences for each word, depending on the
