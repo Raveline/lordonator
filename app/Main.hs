@@ -59,7 +59,7 @@ main = let parser = info (argsParser <**> helper)
              (fullDesc
              <> progDesc "Generate random texts from a source"
              <> header "Lordonator - A Markovish random text generator")
-           go (Generate s _ u d True) = getModel u d s >>= mapM_ (uncurry printModel) . toList . nextWordStat
+           go (Generate s _ u d True) = getModel u d s >>= printModel
            go (Generate s senNum u d _) = getModel u d s >>= generate senNum
        in go =<< execParser parser
 
@@ -70,10 +70,21 @@ generate :: SentencesNum -> Model -> IO ()
 generate senNum m = do sents <- replicateM senNum . buildSentence $ m
                        mapM_ TIO.putStrLn sents
 
-printModel :: [Word] -> WordsProba -> IO ()
-printModel w wp = let dispProba (sub, pb) = T.concat [ T.intercalate " " sub
-                                                     , " --- "
-                                                     , T.pack . show $ pb ]
-                  in TIO.putStrLn "--------------"
-                     >> TIO.putStrLn (T.toUpper . T.intercalate " " $ w)
-                     >> mapM_ (TIO.putStrLn . dispProba) wp
+separator :: T.Text -> IO ()
+separator t = TIO.putStrLn "**********************"
+  >> TIO.putStrLn t
+  >> TIO.putStrLn "**********************"
+
+printModel :: Model -> IO ()
+printModel m =
+  let dispProba (sub, pb) = T.concat [ T.intercalate " " sub
+                                     , " --- "
+                                     , T.pack . show $ pb ]
+      wordstats = toList . nextWordStat $ m
+      dispNextWordStats w wp = TIO.putStrLn "--------------"
+                               >> TIO.putStrLn (T.toUpper . T.intercalate " " $ w)
+                               >> mapM_ (TIO.putStrLn . dispProba) wp
+  in separator "Bigrams & next sequences"
+     >> mapM_ (uncurry dispNextWordStats) wordstats
+     >> separator "Sentence starters"
+     >> mapM_ (TIO.putStrLn . dispProba) (sentenceStarter m)
