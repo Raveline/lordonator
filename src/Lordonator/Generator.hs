@@ -20,10 +20,10 @@ nextWords w m = case M.lookup w (nextWordStat m) of
                   Nothing -> return []
                   Just xs -> fromList xs
 
-randomWord :: (MonadRandom m) => [Word] -> Model -> Producer [Word] m ()
+randomWord :: (MonadRandom m, MonadIO m) => [Word] -> Model -> Producer [Word] m ()
 randomWord w m = do newWords <- lift $ nextWords w m
                     unless (null newWords) $
-                      do let last2Word = drop (length newWords - 2) newWords
+                      do let last2Word = drop (length newWords - ngrams m) newWords
                          yield newWords
                          randomWord last2Word m
 
@@ -35,7 +35,7 @@ singleCapitalize t = let initial = (T.toUpper . T.take 1) t
                      in T.concat [initial, rest]
 
 buildSentence :: (MonadRandom m, MonadIO m) => Model -> m Word
-buildSentence m@(Model _ starts d) =
+buildSentence m@(Model _ starts _ _) =
   do fw <- fromList starts
      sentenceBits <- P.toListM (randomWord fw m >-> P.takeWhile (not . null))
      return $  singleCapitalize . flip T.snoc '.' . T.intercalate " " . concat $ fw:sentenceBits
